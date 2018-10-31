@@ -6,8 +6,8 @@ from RoboticArm2D import RobotArm
 from NEATEvolution import *
 
 UPDATE_TIME = 100
-DOF = 4
-
+DOF = 2
+DISTANCES = [100] * DOF
 class DrawingWidget(QtGui.QWidget):
 
     def __init__(self):
@@ -18,7 +18,7 @@ class DrawingWidget(QtGui.QWidget):
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.update)
         self.timer.start(UPDATE_TIME)
-        self.arm1 = RobotArm(DOF)
+        self.arm1 = RobotArm(DOF, DISTANCES)
         
         self.thetas = [0] * DOF
         self.thetasRates = np.random.normal(0, 1, DOF)
@@ -42,7 +42,9 @@ class DrawingWidget(QtGui.QWidget):
         qp.end()
         
         
-winningOrganism = Evolve()
+        
+print RobotArm.calculatePosition([100,100],[180,90])
+winningOrganism = Evolve(DISTANCES)
         
 app = QtGui.QApplication(sys.argv)
 widget = DrawingWidget()

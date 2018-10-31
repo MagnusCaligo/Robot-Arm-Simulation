@@ -11,15 +11,16 @@ from PyQt4 import QtGui
         
 class RobotArm:
     
-    def __init__(self, dof):
+    def __init__(self, dof, distances):
     
+        assert(dof == len(distances))
         self.dof = dof
         self.xPos = 0
         self.yPos = 0
         
         self.endEffectorPos = (0,0)
         
-        self.distances = [100] * self.dof        
+        self.distances = distances  
         self.thetas = [0] * self.dof       
         self.armEndEffectors = [(0,0)] * self.dof
         
@@ -46,4 +47,21 @@ class RobotArm:
         for i in range(1, self.dof):
             qp.drawLine(self.armEndEffectors[i-1][0], self.armEndEffectors[i-1][1], self.armEndEffectors[i][0], self.armEndEffectors[i][1])
         
+    @staticmethod
+    def calculatePosition(distances, thetas):
+        assert(len(distances)>0)
+        assert(len(thetas) >0)
+        assert(len(distances) == len(thetas))
         
+        positions = []
+        
+        armXPos = math.cos(math.radians(thetas[0])) * distances[0]
+        armYPos = math.sin(math.radians(thetas[0])) * distances[0]
+        positions.append((armXPos, armYPos))
+        
+        for i in range(1, len(distances)):
+            armXPos = math.cos(math.radians(thetas[i])) * distances[i] + positions[i-1][0]
+            armYPos = math.sin(math.radians(thetas[i])) * distances[i] + positions[i-1][1]
+            positions.append((armXPos, armYPos))
+        
+        return positions
