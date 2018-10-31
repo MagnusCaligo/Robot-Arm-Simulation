@@ -10,15 +10,20 @@ DOF = 2
 DISTANCES = [100] * DOF
 class DrawingWidget(QtGui.QWidget):
 
-    def __init__(self):
+    def __init__(self, organism):
         super(DrawingWidget, self).__init__()
         self.setGeometry(150,150,640,480)
+        self.setMouseTracking(True)
         self.show()
         
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.update)
         self.timer.start(UPDATE_TIME)
         self.arm1 = RobotArm(DOF, DISTANCES)
+        
+        self.arm2 = RobotArm(DOF, DISTANCES)
+        self.mousePos = (0,0)
+        self.organism = organism
         
         self.thetas = [0] * DOF
         self.thetasRates = np.random.normal(0, 1, DOF)
@@ -30,6 +35,12 @@ class DrawingWidget(QtGui.QWidget):
     def update(self):
         self.arm1.update(self.thetas)
         self.thetas += self.thetasRates
+        
+        outputAngles = self.organism.activate(self.mousePos)
+        outputAngles = [360 * t for t in outputAngles]
+        self.arm2.update(outputAngles)
+        
+        
         self.repaint()
         self.timer.start(UPDATE_TIME)
         
@@ -39,7 +50,17 @@ class DrawingWidget(QtGui.QWidget):
         qp.translate(320, 240)
         qp.scale(1, -1)
         self.arm1.draw(qp)
+        self.arm2.draw(qp)
         qp.end()
+        
+    def mouseMoveEvent(self,e):
+        point =  e.pos()
+        transform = QtGui.QTransform()
+        transform.translate(-320,240)
+        transform.scale(1,-1)
+        point = transform.map(point)
+        self.mousePos = (point.x(), point.y())
+        print self.mousePos
         
         
         
@@ -47,5 +68,5 @@ print RobotArm.calculatePosition([100,100],[180,90])
 winningOrganism = Evolve(DISTANCES)
         
 app = QtGui.QApplication(sys.argv)
-widget = DrawingWidget()
+widget = DrawingWidget(winningOrganism)
 sys.exit(app.exec_())
