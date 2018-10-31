@@ -38,6 +38,7 @@ class DrawingWidget(QtGui.QWidget):
         
         outputAngles = self.organism.activate(self.mousePos)
         outputAngles = [360 * t for t in outputAngles]
+        print "Output Angles:", outputAngles
         self.arm2.update(outputAngles)
         
         
@@ -51,6 +52,20 @@ class DrawingWidget(QtGui.QWidget):
         qp.scale(1, -1)
         self.arm1.draw(qp)
         self.arm2.draw(qp)
+        
+        rand = random.Random()
+        seed = 2
+        rand.seed(seed)
+        numOfTests = 2
+        for i in range(numOfTests):
+            targetX = rand.uniform(-200, 200)
+            targetY = rand.uniform(-200, 200)
+            print targetX, targetY
+            qp.setPen(QtGui.QPen(QtGui.QColor(0,0,0,128)))
+            qp.setBrush(QtGui.QBrush(QtGui.QColor(0,0,0,128)) )
+            qp.drawEllipse(targetX-5, targetY-5, 10, 10)
+        
+        
         qp.end()
         
     def mouseMoveEvent(self,e):
@@ -60,7 +75,6 @@ class DrawingWidget(QtGui.QWidget):
         transform.scale(1,-1)
         point = transform.map(point)
         self.mousePos = (point.x(), point.y())
-        print self.mousePos
         
         
         

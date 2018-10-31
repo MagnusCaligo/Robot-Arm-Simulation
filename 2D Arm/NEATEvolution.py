@@ -2,6 +2,7 @@ import neat
 import numpy as np
 import random
 from RoboticArm2D import RobotArm
+import math
 
 config_file = "config-feedforward.txt"
 def Evolve(distances):
@@ -37,7 +38,7 @@ def __calculateFitnessFixedPoint(geneomes, config, distances):
 def __calculateFitnessMovingPoint(geneomes, config, distances):
     
     for geneomeID, genome in geneomes:
-        genome.fitness = 1
+        genome.fitness = 0
         
         rand = random.Random()
         seed = 2
@@ -45,15 +46,16 @@ def __calculateFitnessMovingPoint(geneomes, config, distances):
         
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         differences = []
-        for i in range(10):
-            targetX = rand.uniform(-100, 100)
-            targetY = rand.uniform(-100, 100)
+        numberOfTest = 2
+        for i in range(numberOfTest):
+            targetX = rand.uniform(-200, 200)
+            targetY = rand.uniform(-200, 200)
             output = net.activate([targetX, targetY])
             output = [360 * t for t in output]
             positions = RobotArm.calculatePosition(distances, output)
             endEffectorPosition = positions[-1]
             distanceBetween = calculateDistanceBetween2D(endEffectorPosition, (targetX, targetY))
-            genome.fitness -= distanceBetween
+            genome.fitness += math.pow(math.e, -(distanceBetween ** 2)/float(1000))/ float(numberOfTest)
         
     
         
