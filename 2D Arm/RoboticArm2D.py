@@ -65,3 +65,4 @@ class RobotArm:
             positions.append((armXPos, armYPos))
         
         return positions
+        #Positions = [(x,y), (x,y)]

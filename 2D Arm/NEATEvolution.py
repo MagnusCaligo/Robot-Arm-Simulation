@@ -3,6 +3,7 @@ import numpy as np
 import random
 from RoboticArm2D import RobotArm
 import math
+import os
 
 config_file = "config-feedforward.txt"
 def Evolve(distances):
@@ -12,7 +13,7 @@ def Evolve(distances):
     pop.add_reporter(neat.StdOutReporter(True))
     
     
-    winner = pop.run(lambda geneomes, config: __calculateFitnessMovingPoint(geneomes, config, distances), 300)
+    winner = pop.run(lambda geneomes, config: __calculateFitnessMovingPoint(geneomes, config, distances), 3000)
     
     winnerOrganism = neat.nn.FeedForwardNetwork.create(winner, config)
     
@@ -32,7 +33,6 @@ def __calculateFitnessFixedPoint(geneomes, config, distances):
         endEffectorPosition = positions[-1]
         
         distanceBetween = calculateDistanceBetween2D(endEffectorPosition, (xPos, yPos))
-        
         genome.fitness = -distanceBetween
         
 def __calculateFitnessMovingPoint(geneomes, config, distances):
@@ -45,17 +45,24 @@ def __calculateFitnessMovingPoint(geneomes, config, distances):
         rand.seed(seed)
         
         net = neat.nn.FeedForwardNetwork.create(genome, config)
-        differences = []
-        numberOfTest = 2
+        xDifferences = []
+        yDifferences = []
+        numberOfTest = 10
         for i in range(numberOfTest):
-            targetX = rand.uniform(-200, 200)
-            targetY = rand.uniform(-200, 200)
-            output = net.activate([targetX, targetY])
+            targetX = rand.uniform(-100, 100)
+            targetY = rand.uniform(-100, 100)
+            modifiedTargetX = np.interp(targetX, (-100, 100), (-1,1))
+            modifiedTargetY = np.interp(targetY, (-100, 100), (-1,1))
+            output = net.activate([modifiedTargetX, modifiedTargetY])
             output = [360 * t for t in output]
             positions = RobotArm.calculatePosition(distances, output)
             endEffectorPosition = positions[-1]
             distanceBetween = calculateDistanceBetween2D(endEffectorPosition, (targetX, targetY))
-            genome.fitness += math.pow(math.e, -(distanceBetween ** 2)/float(1000))/ float(numberOfTest)
+            genome.fitness += math.pow(math.e, -((10 * (distanceBetween/200) ) ** 2)/float(10)) / float(numberOfTest)
+            xDifferences.append(abs(targetX - endEffectorPosition[0]))
+            yDifferences.append(abs(targetY - endEffectorPosition[1]))
+        #genome.fitness/= 20
+        genome.fitness = (.5 * 1/float(sum(xDifferences))) + (.5 * 1/float(sum(yDifferences)))
         
     
         

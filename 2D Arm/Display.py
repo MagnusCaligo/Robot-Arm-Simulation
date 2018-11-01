@@ -50,7 +50,7 @@ class DrawingWidget(QtGui.QWidget):
         qp.begin(self)
         qp.translate(320, 240)
         qp.scale(1, -1)
-        self.arm1.draw(qp)
+        #self.arm1.draw(qp)
         self.arm2.draw(qp)
         
         rand = random.Random()
@@ -60,7 +60,6 @@ class DrawingWidget(QtGui.QWidget):
         for i in range(numOfTests):
             targetX = rand.uniform(-200, 200)
             targetY = rand.uniform(-200, 200)
-            print targetX, targetY
             qp.setPen(QtGui.QPen(QtGui.QColor(0,0,0,128)))
             qp.setBrush(QtGui.QBrush(QtGui.QColor(0,0,0,128)) )
             qp.drawEllipse(targetX-5, targetY-5, 10, 10)
@@ -74,11 +73,14 @@ class DrawingWidget(QtGui.QWidget):
         transform.translate(-320,240)
         transform.scale(1,-1)
         point = transform.map(point)
-        self.mousePos = (point.x(), point.y())
+        targetX = np.interp(point.x(), (-200, 200), (-1,1))
+        targetY = np.interp(point.y(), (-200, 200), (-1,1))
+        self.mousePos = (targetX, targetY)
         
         
         
-print RobotArm.calculatePosition([100,100],[180,90])
+print RobotArm.calculatePosition([100,100],[120,240])
+print calculateDistanceBetween2D((100,100), (200, 200))
 winningOrganism = Evolve(DISTANCES)
         
 app = QtGui.QApplication(sys.argv)
