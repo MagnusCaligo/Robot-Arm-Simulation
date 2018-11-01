@@ -32,6 +32,7 @@ class RobotArm:
         self.armEndEffectors[0] = (armXPos, armYPos)
         
         for i in range(1, self.dof):
+            thetas[i] += thetas[i-1]
             armXPos = math.cos(math.radians(thetas[i])) * self.distances[i] + self.armEndEffectors[i - 1][0]
             armYPos = math.sin(math.radians(thetas[i])) * self.distances[i] + self.armEndEffectors[i - 1][1]
             self.armEndEffectors[i] = (armXPos, armYPos)
@@ -60,6 +61,7 @@ class RobotArm:
         positions.append((armXPos, armYPos))
         
         for i in range(1, len(distances)):
+            thetas[i] += thetas[i -1]
             armXPos = math.cos(math.radians(thetas[i])) * distances[i] + positions[i-1][0]
             armYPos = math.sin(math.radians(thetas[i])) * distances[i] + positions[i-1][1]
             positions.append((armXPos, armYPos))

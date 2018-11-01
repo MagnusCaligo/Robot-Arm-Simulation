@@ -23,6 +23,7 @@ class DrawingWidget(QtGui.QWidget):
         
         self.arm2 = RobotArm(DOF, DISTANCES)
         self.mousePos = (0,0)
+        self.unmodifiedMousePos = (0,0)
         self.organism = organism
         
         self.thetas = [0] * DOF
@@ -33,12 +34,18 @@ class DrawingWidget(QtGui.QWidget):
             sys.exit()
             
     def update(self):
-        self.arm1.update(self.thetas)
+    
+        temp = ((self.unmodifiedMousePos[0] ** 2) + (self.unmodifiedMousePos[1] ** 2)) ** .5
+        t2 = -math.acos(((temp -(100**2) - (100**2))/(2*100*100))) + math.pi
+        
+        temp = (100 * math.sin(t2))/float(100 + (100*math.cos(t2)))
+        t1 = math.atan(self.unmodifiedMousePos[1]/float(self.unmodifiedMousePos[0])) - math.atan(temp)
+        self.arm1.update([math.degrees(t1), math.degrees(t2)])
         self.thetas += self.thetasRates
         
         outputAngles = self.organism.activate(self.mousePos)
         outputAngles = [360 * t for t in outputAngles]
-        print "Output Angles:", outputAngles
+        print "Output Angles:", [math.degrees(t1), math.degrees(t2)], "Calculated Position:", RobotArm.calculatePosition([100,100],[math.degrees(t1), math.degrees(t2)])[-1], "Mouse Position:", self.unmodifiedMousePos
         self.arm2.update(outputAngles)
         
         
@@ -50,8 +57,8 @@ class DrawingWidget(QtGui.QWidget):
         qp.begin(self)
         qp.translate(320, 240)
         qp.scale(1, -1)
-        #self.arm1.draw(qp)
-        self.arm2.draw(qp)
+        self.arm1.draw(qp)
+        #self.arm2.draw(qp)
         
         rand = random.Random()
         seed = 2
@@ -75,6 +82,7 @@ class DrawingWidget(QtGui.QWidget):
         point = transform.map(point)
         targetX = np.interp(point.x(), (-200, 200), (-1,1))
         targetY = np.interp(point.y(), (-200, 200), (-1,1))
+        self.unmodifiedMousePos = (point.x(), point.y())
         self.mousePos = (targetX, targetY)
         
         

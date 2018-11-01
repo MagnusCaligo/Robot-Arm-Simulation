@@ -13,7 +13,7 @@ def Evolve(distances):
     pop.add_reporter(neat.StdOutReporter(True))
     
     
-    winner = pop.run(lambda geneomes, config: __calculateFitnessMovingPoint(geneomes, config, distances), 3000)
+    winner = pop.run(lambda geneomes, config: __calculateFitnessMovingPoint(geneomes, config, distances), 10)
     
     winnerOrganism = neat.nn.FeedForwardNetwork.create(winner, config)
     
@@ -47,7 +47,7 @@ def __calculateFitnessMovingPoint(geneomes, config, distances):
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         xDifferences = []
         yDifferences = []
-        numberOfTest = 10
+        numberOfTest = 2
         for i in range(numberOfTest):
             targetX = rand.uniform(-100, 100)
             targetY = rand.uniform(-100, 100)
@@ -63,6 +63,7 @@ def __calculateFitnessMovingPoint(geneomes, config, distances):
             yDifferences.append(abs(targetY - endEffectorPosition[1]))
         #genome.fitness/= 20
         genome.fitness = (.5 * 1/float(sum(xDifferences))) + (.5 * 1/float(sum(yDifferences)))
+        genome.fitness = 1/float(sum(xDifferences) + sum(yDifferences))
         
     
         
