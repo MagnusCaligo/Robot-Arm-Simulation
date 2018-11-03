@@ -13,7 +13,7 @@ def Evolve(distances):
     pop.add_reporter(neat.StdOutReporter(True))
     
     
-    winner = pop.run(lambda geneomes, config: __calculateFitnessMovingPoint(geneomes, config, distances), 10)
+    winner = pop.run(lambda geneomes, config: __calculateFitnessMovingPoint(geneomes, config, distances), 1)
     
     winnerOrganism = neat.nn.FeedForwardNetwork.create(winner, config)
     
@@ -24,7 +24,7 @@ def Evolve(distances):
 
 def __calculateFitnessFixedPoint(geneomes, config, distances):
     xPos = 100
-    yPos = 100
+    yPos = 0
     for geneomeID, genome in geneomes:
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         output = net.activate([xPos, yPos])
@@ -34,11 +34,15 @@ def __calculateFitnessFixedPoint(geneomes, config, distances):
         
         distanceBetween = calculateDistanceBetween2D(endEffectorPosition, (xPos, yPos))
         genome.fitness = -distanceBetween
+        #genome.fitness = 1/ (float(abs(endEffectorPosition[0] - xPos) + abs(endEffectorPosition[1] - yPos)))
         
 def __calculateFitnessMovingPoint(geneomes, config, distances):
     
+    maximumDistance = 150
+    numberOfTest = 15
+    
     for geneomeID, genome in geneomes:
-        genome.fitness = 0
+        genome.fitness = 1
         
         rand = random.Random()
         seed = 2
@@ -47,23 +51,25 @@ def __calculateFitnessMovingPoint(geneomes, config, distances):
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         xDifferences = []
         yDifferences = []
-        numberOfTest = 2
+        
         for i in range(numberOfTest):
-            targetX = rand.uniform(-100, 100)
-            targetY = rand.uniform(-100, 100)
-            modifiedTargetX = np.interp(targetX, (-100, 100), (-1,1))
-            modifiedTargetY = np.interp(targetY, (-100, 100), (-1,1))
-            output = net.activate([modifiedTargetX, modifiedTargetY])
+            targetX = rand.uniform(-maximumDistance, maximumDistance)
+            targetY = rand.uniform(-maximumDistance, maximumDistance)
+            modifiedTargetX = np.interp(targetX, (-maximumDistance, maximumDistance), (-1,1))
+            modifiedTargetY = np.interp(targetY, (-maximumDistance, maximumDistance), (-1,1))
+            output = net.activate([targetX, targetY])
             output = [360 * t for t in output]
             positions = RobotArm.calculatePosition(distances, output)
             endEffectorPosition = positions[-1]
             distanceBetween = calculateDistanceBetween2D(endEffectorPosition, (targetX, targetY))
-            genome.fitness += math.pow(math.e, -((10 * (distanceBetween/200) ) ** 2)/float(10)) / float(numberOfTest)
+            genome.fitness = -distanceBetween
+            #genome.fitness += math.pow(math.e, -((10 * (distanceBetween/200) ) ** 2)/float(10)) / float(numberOfTest)
             xDifferences.append(abs(targetX - endEffectorPosition[0]))
             yDifferences.append(abs(targetY - endEffectorPosition[1]))
+            
         #genome.fitness/= 20
-        genome.fitness = (.5 * 1/float(sum(xDifferences))) + (.5 * 1/float(sum(yDifferences)))
-        genome.fitness = 1/float(sum(xDifferences) + sum(yDifferences))
+        #genome.fitness = (.5 * 1/float(sum(xDifferences))) + (.5 * 1/float(sum(yDifferences)))
+        #genome.fitness = 1/float(sum(xDifferences) + sum(yDifferences))
         
     
         

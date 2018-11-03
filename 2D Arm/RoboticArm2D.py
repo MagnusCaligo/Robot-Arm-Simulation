@@ -59,11 +59,13 @@ class RobotArm:
         armXPos = math.cos(math.radians(thetas[0])) * distances[0]
         armYPos = math.sin(math.radians(thetas[0])) * distances[0]
         positions.append((armXPos, armYPos))
+        print "INITIAL POSITION:", armXPos, armYPos, thetas[0], distances[0]
         
         for i in range(1, len(distances)):
             thetas[i] += thetas[i -1]
-            armXPos = math.cos(math.radians(thetas[i])) * distances[i] + positions[i-1][0]
-            armYPos = math.sin(math.radians(thetas[i])) * distances[i] + positions[i-1][1]
+            armXPos = (math.cos(math.radians(thetas[i])) * distances[i]) + positions[i-1][0]
+            armYPos = (math.sin(math.radians(thetas[i])) * distances[i]) + positions[i-1][1]
+            print "Second CALCULATION:", armXPos, armYPos
             positions.append((armXPos, armYPos))
         
         return positions
