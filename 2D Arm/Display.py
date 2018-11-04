@@ -36,33 +36,26 @@ class DrawingWidget(QtGui.QWidget):
             sys.exit()
             
     def update(self):
-        distances = DISTANCES[0]
-        #self.unmodifiedMousePos = (100,0)
-        temp = ((self.unmodifiedMousePos[0] ** 2) + (self.unmodifiedMousePos[1] ** 2)) 
-        #if temp > (2*distances*distances) + (distances**2 + distances**2) ** .5:
-        #    temp = (2*distances*distances) + (distances**2 + distances**2) ** .5
-            
-        above = (temp - (distances**2) - (distances**2))
-        below = (2 * distances * distances)
-        print "Above:", (temp -(((distances**2) + (distances**2)))), "Below", (2*distances*distances), "Total:", above/float(below)
         
-        t2 = math.acos(above/float(below))
+        thetas = RobotArm.calculateInverseKinematics(DISTANCES, self.unmodifiedMousePos)
+        self.arm1.update(thetas)
         
-        temp = (float(distances) * math.sin(t2)),float(distances + (distances*math.cos(t2)))
-        t1 = math.atan2(self.unmodifiedMousePos[1],float(self.unmodifiedMousePos[0])) - math.atan2(temp[0], temp[1])
-        self.arm1.update([math.degrees(t1), math.degrees(t2)])
-        self.thetas += self.thetasRates
-        
-        self.calculatedEF = RobotArm.calculatePosition([distances, distances], [math.degrees(t1),math.degrees(t2)])[-1]
+        self.calculatedEF = RobotArm.calculatePosition(DISTANCES, thetas)[1]
+        '''
+        transform = QtGui.QTransform()
+        transform.translate(320,240)
+        transform.scale(1,-1)
+        self.calculatedEF = transform.map(self.calculatedEF[0], self.calculatedEF[1])
+        '''
         
         outputAngles = self.organism.activate(self.mousePos)
         outputAngles = [360 * t for t in outputAngles]
-        print "Output Angles:", [math.degrees(t1), math.degrees(t2)], "Calculated Position:", RobotArm.calculatePosition([100,100],[math.degrees(t1), math.degrees(t2)])[-1], "Mouse Position:", self.unmodifiedMousePos
         self.arm2.update(outputAngles)
         
         
         self.repaint()
         self.timer.start(UPDATE_TIME)
+        
         
     def paintEvent(self, e):
         qp = QtGui.QPainter()
@@ -82,6 +75,9 @@ class DrawingWidget(QtGui.QWidget):
             qp.setPen(QtGui.QPen(QtGui.QColor(0,0,0,128)))
             qp.setBrush(QtGui.QBrush(QtGui.QColor(0,0,0,128)) )
             qp.drawEllipse(targetX-5, targetY-5, 10, 10)
+        
+        
+        
         
         qp.setPen(QtGui.QPen(QtGui.QColor(0,255,0,128)))
         qp.setBrush(QtGui.QBrush(QtGui.QColor(0,255,0,128)) )
