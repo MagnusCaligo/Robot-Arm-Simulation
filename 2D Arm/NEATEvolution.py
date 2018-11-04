@@ -78,10 +78,10 @@ def __calculateFitnessFixedPoint(geneomes, config, distances):
 def __calculateFitnessMovingPoint(geneomes, config, distances):
     
     maximumDistance = 200
-    numberOfTest = 2
+    numberOfTest = 10
     
     for geneomeID, genome in geneomes:
-        genome.fitness = 1
+        genome.fitness = 0
         
         rand = random.Random()
         seed = random.randint(0,10000)
@@ -107,8 +107,8 @@ def __calculateFitnessMovingPoint(geneomes, config, distances):
             positions = RobotArm.calculatePosition(distances, output)
             endEffectorPosition = positions[-1]
             distanceBetween = calculateDistanceBetween2D(endEffectorPosition, (targetX, targetY))
-            genome.fitness -= distanceBetween
-            #genome.fitness += math.pow(math.e, -((10 * (distanceBetween/20) ) ** 2)/float(10)) / float(numberOfTest)
+            #genome.fitness -= distanceBetween
+            genome.fitness += math.pow(math.e, -((10 * (distanceBetween/20) ) ** 2)/float(10)) / float(numberOfTest)
             xDifferences.append(abs(targetX - endEffectorPosition[0]))
             yDifferences.append(abs(targetY - endEffectorPosition[1]))
             
