@@ -37,16 +37,13 @@ class RobotArm:
             armYPos = math.sin(math.radians(sumTheta)) * self.distances[i] + (self.armEndEffectors[i - 1][1])
             self.armEndEffectors[i] = (armXPos, armYPos)
             self.endEffectorPos = self.armEndEffectors[i]
-        print "UPDATED END EFFECTOR:", self.endEffectorPos
         return self.endEffectorPos
         
     def draw(self, qp):
         qp.setPen(QtGui.QPen(QtGui.QColor(255,0,0,128)))
         qp.setBrush(QtGui.QBrush(QtGui.QColor(0,255,0,128)) )
-        print "Drawing Line from", [self.xPos, self.yPos], self.armEndEffectors[0]
         qp.drawLine(self.xPos, self.yPos, self.armEndEffectors[0][0], self.armEndEffectors[0][1])
         for i in range(1, self.dof):
-            print "Drawing Line from", self.armEndEffectors[i-1], self.armEndEffectors[i]
             qp.drawLine(self.armEndEffectors[i-1][0], self.armEndEffectors[i-1][1], self.armEndEffectors[i][0], self.armEndEffectors[i][1])
         
     @staticmethod
@@ -66,10 +63,8 @@ class RobotArm:
             #newTheta = thetas[i] + thetas[i -1]
             armXPos = (math.cos(math.radians(sumTheta)) * distances[i]) + positions[i-1][0]
             armYPos = (math.sin(math.radians(sumTheta)) * distances[i]) + positions[i-1][1]
-            print "Second CALCULATION:", armXPos, armYPos
             positions.append((armXPos, armYPos))
         
-        print "OUTPUT:", positions
         return positions
         #Positions = [(x,y), (x,y)]
         

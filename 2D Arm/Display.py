@@ -40,7 +40,7 @@ class DrawingWidget(QtGui.QWidget):
         thetas = RobotArm.calculateInverseKinematics(DISTANCES, self.unmodifiedMousePos)
         self.arm1.update(thetas)
         
-        self.calculatedEF = RobotArm.calculatePosition(DISTANCES, thetas)[1]
+        
         '''
         transform = QtGui.QTransform()
         transform.translate(320,240)
@@ -51,7 +51,9 @@ class DrawingWidget(QtGui.QWidget):
         outputAngles = self.organism.activate(self.mousePos)
         outputAngles = [360 * t for t in outputAngles]
         self.arm2.update(outputAngles)
+        self.calculatedEF = RobotArm.calculatePosition(DISTANCES, outputAngles)[1]
         
+        print calculateDistanceBetween2D(self.unmodifiedMousePos, self.calculatedEF)
         
         self.repaint()
         self.timer.start(UPDATE_TIME)
@@ -62,19 +64,29 @@ class DrawingWidget(QtGui.QWidget):
         qp.begin(self)
         qp.translate(320, 240)
         qp.scale(1, -1)
-        self.arm1.draw(qp)
-        #self.arm2.draw(qp)
+        #self.arm1.draw(qp)
+        self.arm2.draw(qp)
         
         rand = random.Random()
-        seed = 2
+        seed = 3
         rand.seed(seed)
-        numOfTests = 6
+        numOfTests = 2
+        maxRange = 200
         for i in range(numOfTests):
-            targetX = rand.uniform(-200, 200)
-            targetY = rand.uniform(-200, 200)
-            qp.setPen(QtGui.QPen(QtGui.QColor(0,0,0,128)))
-            qp.setBrush(QtGui.QBrush(QtGui.QColor(0,0,0,128)) )
+        
+            angle = rand.uniform(0,1) * math.pi * 2
+            radius = rand.uniform(0, 1) * maxRange
+            targetX = radius * math.sin(angle)
+            targetY = radius * math.cos(angle)
+            #targetX = rand.uniform(-maxRange, maxRange)
+            #targetY = rand.uniform(-maxRange, maxRange)
+            qp.setPen(QtGui.QPen(QtGui.QColor(255,0,0,128)))
+            qp.setBrush(QtGui.QBrush(QtGui.QColor(255,0,0,128)) )
             qp.drawEllipse(targetX-5, targetY-5, 10, 10)
+            qp.setPen(QtGui.QPen(QtGui.QColor(0,0,0,255)))
+            qp.scale(1,-1)
+            qp.drawText(QtCore.QPointF(targetX-2, -targetY+5), str(i))
+            qp.scale(1,-1)
         
         
         
