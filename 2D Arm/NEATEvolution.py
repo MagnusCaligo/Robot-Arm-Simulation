@@ -40,6 +40,7 @@ def Evolve(distances):
         output = [360 * t for t in output]
         positions = RobotArm.calculatePosition(distances, output)
         endEffectorPosition = positions[-1]
+        print "Target was:", targetX, targetY, "Position was:", endEffectorPosition
         distanceBetween = calculateDistanceBetween2D(endEffectorPosition, (targetX, targetY))
         fitness -= distanceBetween
         

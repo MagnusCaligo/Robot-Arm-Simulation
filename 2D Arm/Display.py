@@ -48,7 +48,7 @@ class DrawingWidget(QtGui.QWidget):
         self.calculatedEF = transform.map(self.calculatedEF[0], self.calculatedEF[1])
         '''
         
-        outputAngles = self.organism.activate(self.mousePos)
+        outputAngles = self.organism.activate(self.unmodifiedMousePos)
         outputAngles = [360 * t for t in outputAngles]
         self.arm2.update(outputAngles)
         self.calculatedEF = RobotArm.calculatePosition(DISTANCES, outputAngles)[1]
