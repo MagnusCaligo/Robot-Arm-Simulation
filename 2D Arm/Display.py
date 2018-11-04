@@ -36,14 +36,19 @@ class DrawingWidget(QtGui.QWidget):
             sys.exit()
             
     def update(self):
-        distances = 200
+        distances = DISTANCES[0]
+        #self.unmodifiedMousePos = (100,0)
         temp = ((self.unmodifiedMousePos[0] ** 2) + (self.unmodifiedMousePos[1] ** 2)) 
+        #if temp > (2*distances*distances) + (distances**2 + distances**2) ** .5:
+        #    temp = (2*distances*distances) + (distances**2 + distances**2) ** .5
+            
+        above = (temp - (distances**2) - (distances**2))
+        below = (2 * distances * distances)
+        print "Above:", (temp -(((distances**2) + (distances**2)))), "Below", (2*distances*distances), "Total:", above/float(below)
         
-        print "Above:", (temp -(((distances**2) + (distances**2))**.5)), "Below", (2*distances*distances), "Total:", (((temp -(((distances**2) + (distances**2))**.5))/(2*distances*distances)))
+        t2 = math.acos(above/float(below))
         
-        t2 = math.acos(((temp -(((distances**2) + (distances**2))**.5))/(2*distances*distances)))
-        
-        temp = (distances * math.sin(t2)),float(distances + (distances*math.cos(t2)))
+        temp = (float(distances) * math.sin(t2)),float(distances + (distances*math.cos(t2)))
         t1 = math.atan2(self.unmodifiedMousePos[1],float(self.unmodifiedMousePos[0])) - math.atan2(temp[0], temp[1])
         self.arm1.update([math.degrees(t1), math.degrees(t2)])
         self.thetas += self.thetasRates
@@ -52,7 +57,7 @@ class DrawingWidget(QtGui.QWidget):
         
         outputAngles = self.organism.activate(self.mousePos)
         outputAngles = [360 * t for t in outputAngles]
-        #print "Output Angles:", [math.degrees(t1), math.degrees(t2)], "Calculated Position:", RobotArm.calculatePosition([100,100],[math.degrees(t1), math.degrees(t2)])[-1], "Mouse Position:", self.unmodifiedMousePos
+        print "Output Angles:", [math.degrees(t1), math.degrees(t2)], "Calculated Position:", RobotArm.calculatePosition([100,100],[math.degrees(t1), math.degrees(t2)])[-1], "Mouse Position:", self.unmodifiedMousePos
         self.arm2.update(outputAngles)
         
         
@@ -81,6 +86,10 @@ class DrawingWidget(QtGui.QWidget):
         qp.setPen(QtGui.QPen(QtGui.QColor(0,255,0,128)))
         qp.setBrush(QtGui.QBrush(QtGui.QColor(0,255,0,128)) )
         qp.drawEllipse(self.calculatedEF[0]-5, self.calculatedEF[1]-5, 10, 10)
+        
+        qp.setPen(QtGui.QPen(QtGui.QColor(0,0,255,128)))
+        qp.setBrush(QtGui.QBrush(QtGui.QColor(0,0,255,128)) )
+        qp.drawEllipse(self.unmodifiedMousePos[0]-5, self.unmodifiedMousePos[1]-5, 10, 10)
         
         qp.end()
         
