@@ -13,7 +13,7 @@ def Evolve(distances):
     pop.add_reporter(neat.StdOutReporter(True))
     
     
-    winner = pop.run(lambda geneomes, config: __calculateFitnessMovingPoint(geneomes, config, distances), 300)
+    winner = pop.run(lambda geneomes, config: __calculateFitnessMovingPoint(geneomes, config, distances), 3000)
     
     winnerOrganism = neat.nn.FeedForwardNetwork.create(winner, config)
     print "Winner Organism Fitness:", winner.fitness
@@ -62,8 +62,8 @@ def __calculateFitnessFixedPoint(geneomes, config, distances):
     targetX = radius * math.sin(angle)
     targetY = radius * math.cos(angle)
             
-    xPos = targetX
-    yPos = targetY
+    xPos = 100
+    yPos = 0
     for geneomeID, genome in geneomes:
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         output = net.activate([xPos, yPos])
@@ -85,7 +85,7 @@ def __calculateFitnessMovingPoint(geneomes, config, distances):
         
         rand = random.Random()
         seed = random.randint(0,10000)
-        seed = 3
+        #seed = 3
         rand.seed(seed)
         
         net = neat.nn.FeedForwardNetwork.create(genome, config)
@@ -107,8 +107,8 @@ def __calculateFitnessMovingPoint(geneomes, config, distances):
             positions = RobotArm.calculatePosition(distances, output)
             endEffectorPosition = positions[-1]
             distanceBetween = calculateDistanceBetween2D(endEffectorPosition, (targetX, targetY))
-            #genome.fitness -= distanceBetween
-            genome.fitness += math.pow(math.e, -((10 * (distanceBetween/20) ) ** 2)/float(10)) / float(numberOfTest)
+            genome.fitness -= distanceBetween
+            #genome.fitness += math.pow(math.e, -((10 * (distanceBetween/20) ) ** 2)/float(10)) / float(numberOfTest)
             xDifferences.append(abs(targetX - endEffectorPosition[0]))
             yDifferences.append(abs(targetY - endEffectorPosition[1]))
             
