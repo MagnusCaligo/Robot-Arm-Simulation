@@ -116,7 +116,7 @@ class DrawingWidget(QtGui.QWidget):
         
 print RobotArm.calculatePosition([100,100],[120,240])
 print calculateDistanceBetween2D((100,100), (200, 200))
-winningOrganism = Evolve(DISTANCES)
+winningOrganism = Evolve_Different_Paramters(DISTANCES)
         
 app = QtGui.QApplication(sys.argv)
 widget = DrawingWidget(winningOrganism)
