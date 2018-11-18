@@ -221,7 +221,7 @@ class EvolveThreadingMain(QtCore.QObject):
         if dataIsFull == True:
             os.system('cls')
             deltaTime = time.time() - self.timeSinceLastUpdate
-            timeLeft = 1500/float(1/float(deltaTime))
+            timeLeft = (1500-self.printData[0][0][0])/float(1/float(deltaTime))
             print "Delta Time:", deltaTime, "\tApproximate Time Left:", timeLeft, "seconds\t", timeLeft/float(60), "minutes\t", timeLeft/float(60)/float(60), "hours"
             self.timeSinceLastUpdate = time.time()
             for i in range(self.numConfigs):
@@ -276,7 +276,7 @@ class EvolveConfiguration(QtCore.QThread):
             rand = random.Random()
             seed = random.randint(0,10000)
             seed = 3
-            rand.seed(seed)
+            #rand.seed(seed)
             
             net = neat.nn.FeedForwardNetwork.create(genome, config)
             xDifferences = []
