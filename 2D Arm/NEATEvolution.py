@@ -6,7 +6,10 @@ import math
 import os
 from PyQt4 import QtCore
 import sys
+import time
 config_file = "config-feedforward.txt"
+
+config_files = ["configurations/lowAddition_lowSubtraction_weights30.txt","configurations/lowAddition_lowSubtraction_weights1000.txt","configurations/lowAddition_noSubtraction_weights30.txt","configurations/lowAddition_noSubtraction_weights1000.txt"]
 
 generation = 0
 
@@ -156,39 +159,117 @@ class EvolveThreadingMain(QtCore.QObject):
         self.distances = distances
         self.configs = []
         self.threads = []
+        
+        self.numConfigs = len(config_files)
+        self.numTests = 10
+        
+        self.timeSinceLastUpdate = time.time()
+        
+        self.printData = []
+        self.winnerData = []
+        for i in range(self.numConfigs):
+            self.printData.append([])
+            self.winnerData.append([])
+            for p in range(self.numTests):
+                self.printData[i].append(None)
+                self.winnerData[i].append(None)
+                
+         
+            
 
     def evolveWithThreads(self):
-        self.configs.append(neat.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet, neat.DefaultStagnation, config_file))
+        for con in config_files:
+            self.configs.append(neat.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet, neat.DefaultStagnation, con))
         
-        self.threads = [EvolveConfiguration(c,self.distances, i) for i,c in enumerate(self.configs)]
+        #self.threads = [EvolveConfiguration(c,self.distances, i) for i,c in enumerate(self.configs)]
+        for con_id, con in enumerate(self.configs):
+            for sub_id in range(self.numTests):
+                self.threads.append(EvolveConfiguration(con,self.distances, con_id, sub_id))
         for thread in self.threads:
-            self.connect(thread, QtCore.SIGNAL("data(PyQt_PyObject, PyQt_PyObject)"), self.printData)
+            self.connect(thread, QtCore.SIGNAL("winner_data(PyQt_PyObject, PyQt_PyObject, PyQt_PyObject)"), self.getWinnerData)
+            self.connect(thread, QtCore.SIGNAL("update_data(PyQt_PyObject, PyQt_PyObject, PyQt_PyObject)"), self.returnData)
             thread.start()
             
-    def printData(self, id, data):
-        print "Thread", id, "finished:", data
+    def getWinnerData(self, con_id, sub_id, data):
+        self.winnerData[con_id][sub_id] = data
+        dataIsFull = True
+        for i in range(self.numConfigs):
+            for p in range(self.numTests):
+                if self.winnerData[i][p] == None:
+                    dataIsFull = False
+                    break
+        if dataIsFull == True:
+            dataString = ""
+            os.system('cls')
+            print "All threads finished!"
+            for i in range(self.numConfigs):
+                print "\nConfiguration", i, ":"
+                for p in range(self.numTests):
+                    print "\tRun", p, "- Generaton:", self.winnerData[i][p][0], "\t Fitness:", self.winnerData[i][p][1]
+                    dataString = dataString + str(i) + " " + str(p) + " " + str(self.winnerData[i][p][0]) + " " + str(self.winnerData[i][p][1]) + "\n"
+            self.writeData(dataString)
+        
+        
+    def returnData(self, con_id, sub_id, data):
+        self.printData[con_id][sub_id] = data
+        dataIsFull = True
+        for i in range(self.numConfigs):
+            for p in range(self.numTests):
+                if self.printData[i][p] == None:
+                    dataIsFull = False
+                    break
+        if dataIsFull == True:
+            os.system('cls')
+            deltaTime = time.time() - self.timeSinceLastUpdate
+            timeLeft = 1500/float(1/float(deltaTime))
+            print "Delta Time:", deltaTime, "\tApproximate Time Left:", timeLeft, "seconds\t", timeLeft/float(60), "minutes\t", timeLeft/float(60)/float(60), "hours"
+            self.timeSinceLastUpdate = time.time()
+            for i in range(self.numConfigs):
+                print "\nConfiguration", i, ":"
+                for p in range(self.numTests):
+                    print "\tRun", p, "- Generaton:", self.printData[i][p][0], "\t Fitness:", self.printData[i][p][1]
+                    
+            self.printData = []
+            for i in range(self.numConfigs):
+                self.printData.append([])
+                for p in range(self.numTests):
+                    self.printData[i].append(None)
+                    
+                    
+    def writeData(self, dataString):
+        outputId = 0
+        while "output" + str(outputId) + ".data" in os.listdir('.'):
+            outputId += 1
+            
+        file = open("output" + str(outputId) + ".data", "w")
+        file.write(dataString)
+        file.close()
+        sys.exit(1)
+                    
     
 class EvolveConfiguration(QtCore.QThread):
 
     NUMBER_OF_ITERATIONS = 1500
 
-    def __init__(self, config, distances, id):
+    def __init__(self, config, distances, config_id, sub_id):
         QtCore.QThread.__init__(self)
         self.config = config
         self.distances = distances
-        self.id = id
+        self.config_id = config_id
+        self.sub_id = sub_id
+        self.generation = -1
         
     def run(self):
         pop = neat.Population(self.config)
-        pop.add_reporter(neat.StdOutReporter(True))
+        #pop.add_reporter(neat.StdOutReporter(True))
         winner = pop.run(lambda geneomes, config: self.__calculateFitnessMovingPoint(geneomes, config, self.distances), EvolveConfiguration.NUMBER_OF_ITERATIONS)
-        self.emit(QtCore.SIGNAL("data(PyQt_PyObject, PyQt_PyObject)"), self.id, winner.fitness)
+        self.emit(QtCore.SIGNAL("winner_data(PyQt_PyObject, PyQt_PyObject, PyQt_PyObject)"), self.config_id, self.sub_id, [self.generation, winner.fitness])
         
     def __calculateFitnessMovingPoint(self, geneomes, config, distances):
-        
+        self.generation += 1
         maximumDistance = 200
         numberOfTest = 4
-        
+        highestFitness = None
         for geneomeID, genome in geneomes:
             genome.fitness = 0
             
@@ -221,6 +302,9 @@ class EvolveConfiguration(QtCore.QThread):
                 xDifferences.append(abs(targetX - endEffectorPosition[0]))
                 yDifferences.append(abs(targetY - endEffectorPosition[1]))
                 
+            if highestFitness == None or genome.fitness > highestFitness:
+                highestFitness = genome.fitness
             #genome.fitness/= 20
             #genome.fitness = (.5 * 1/float(sum(xDifferences))) + (.5 * 1/float(sum(yDifferences)))
             #genome.fitness = 10/float(sum(xDifferences) + sum(yDifferences)) 
+        self.emit(QtCore.SIGNAL("update_data(PyQt_PyObject, PyQt_PyObject, PyQt_PyObject)"), self.config_id, self.sub_id, [self.generation, highestFitness])

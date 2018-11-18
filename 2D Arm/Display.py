@@ -114,8 +114,6 @@ class DrawingWidget(QtGui.QWidget):
         
         
         
-print RobotArm.calculatePosition([100,100],[120,240])
-print calculateDistanceBetween2D((100,100), (200, 200))
 #winningOrganism = Evolve(DISTANCES)
 threading = EvolveThreadingMain(DISTANCES)
 threading.evolveWithThreads()
