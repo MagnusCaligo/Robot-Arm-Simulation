@@ -5,9 +5,11 @@ import numpy as np
 from RoboticArm2D import RobotArm
 from NEATEvolution import *
 
-UPDATE_TIME = 100
-DOF = 1
-DISTANCES = [200] * DOF
+UPDATE_TIME = 100 #Time between drawing events
+DOF = 1 #Degrees of freedom of the arm, can be increased but the networks will not converge on a good result
+DISTANCES = [200] * DOF #Lengths of the arm segments
+
+#This class draws the arms and the tests to the screen. We can also use the mouse to fake input
 class DrawingWidget(QtGui.QWidget):
 
     def __init__(self, organism, trainingThread):
@@ -16,68 +18,56 @@ class DrawingWidget(QtGui.QWidget):
         self.setMouseTracking(True)
         self.show()
         
+        #The GUI needs to know when the training is finished so it can start drawing, so it connects an event with the training stuff
         self.trainingThread = trainingThread
         self.connect(self.trainingThread, QtCore.SIGNAL("finished"), self.startTimer)
         
-    
-        self.arm1 = RobotArm(DOF, DISTANCES)
-        
-        self.arm2 = RobotArm(DOF, DISTANCES)
-        self.mousePos = (0,0)
-        self.unmodifiedMousePos = (0,0)
-        self.organism = organism
-        
-        self.calculatedEF = (0,0)
-        
-        self.thetas = [0] * DOF
-        self.thetasRates = np.random.normal(0, 1, DOF)
-        
-    def startTimer(self):
-        self.organism = self.trainingThread.bestOrganism
+        #Timer for updating the GUI, however this is not initiated until after training is finished
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.update)
+        
+        self.trainedArm = RobotArm(DOF, DISTANCES) #Create a new instance of the arm, this will be used to mimic the trained network
+        
+        self.mousePos = (0,0)
+        self.unmodifiedMousePos = (0,0)
+        self.organism = organism #Trained organism that performed the best
+        
+        self.calculatedEF = (0,0) #Location of the last segment of the arm
+        
+        self.thetas = [0] * DOF #angles between the segments of the arm
+        
+    #Function used to update the gui, it is not called until training is done
+    def startTimer(self):
+        self.organism = self.trainingThread.bestOrganism #Update organism
         self.timer.start(UPDATE_TIME)
         
+    #If you hit q the gui will close
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Q:
             sys.exit()
-            
+    
+    #Main loop that updates the gui and the organism
     def update(self):
+        outputAngles = self.organism.activate(self.unmodifiedMousePos) #Pass in the mouse position into the network
+        outputAngles = [360 * t for t in outputAngles] #Parse the data into degrees
+        self.trainedArm.update(outputAngles) #Update the arm position based on the angles
+        self.calculatedEF = RobotArm.calculatePosition(DISTANCES, outputAngles)[-1] #Update the end-effector based on the arm
         
-        #thetas = RobotArm.calculateInverseKinematics(DISTANCES, self.unmodifiedMousePos)
-        #self.arm1.update(thetas)
-        
-        
-        '''
-        transform = QtGui.QTransform()
-        transform.translate(320,240)
-        transform.scale(1,-1)
-        self.calculatedEF = transform.map(self.calculatedEF[0], self.calculatedEF[1])
-        '''
-        
-        outputAngles = self.organism.activate(self.unmodifiedMousePos)
-        outputAngles = [360 * t for t in outputAngles]
-        self.arm2.update([30])
-        self.calculatedEF = RobotArm.calculatePosition(DISTANCES, [30])[-1]
-        
-        print calculateDistanceBetween2D(self.unmodifiedMousePos, self.calculatedEF)
-        
-        self.repaint()
+        self.repaint() #Repaint the screen and restart the loop
         self.timer.start(UPDATE_TIME)
         
-        
+    #Shit ton of paint events to draw everything to the screen, this can be ignored. 
     def paintEvent(self, e):
         qp = QtGui.QPainter()
         qp.begin(self)
         qp.translate(320, 240)
         qp.scale(1, -1)
-        #self.arm1.draw(qp)
-        self.arm2.draw(qp)
+        self.trainedArm.draw(qp)
         
         rand = random.Random()
         seed = 3
         rand.seed(seed)
-        numOfTests = 10
+        numOfTests = 5
         maxRange = sum(DISTANCES)
         for i in range(numOfTests):
         
@@ -85,8 +75,6 @@ class DrawingWidget(QtGui.QWidget):
             radius = maxRange #rand.uniform(0, 1) * maxRange
             targetX = radius * math.sin(angle)
             targetY = radius * math.cos(angle)
-            #targetX = rand.uniform(-maxRange, maxRange)
-            #targetY = rand.uniform(-maxRange, maxRange)
             qp.setPen(QtGui.QPen(QtGui.QColor(255,0,0,128)))
             qp.setBrush(QtGui.QBrush(QtGui.QColor(255,0,0,128)) )
             qp.drawEllipse(targetX-5, targetY-5, 10, 10)
@@ -108,6 +96,9 @@ class DrawingWidget(QtGui.QWidget):
         
         qp.end()
         
+    #If the mouse moves we need to pass the data to the arm
+    #I have to do some transformation stuff here because I want 0,0 to be in the center of the screen
+    #And I want Y to increase upwards not downwards
     def mouseMoveEvent(self,e):
         point =  e.pos()
         transform = QtGui.QTransform()
@@ -119,14 +110,3 @@ class DrawingWidget(QtGui.QWidget):
         self.unmodifiedMousePos = (point.x(), point.y())
         self.mousePos = (targetX, targetY)
         
-        
-        
-#winningOrganism = Evolve(DISTANCES)
-threading = EvolveThreadingMain(DISTANCES)
-threading.evolveWithThreads()
-
-
-
-app = QtGui.QApplication(sys.argv)
-widget = DrawingWidget(threading.bestOrganism, threading)
-sys.exit(app.exec_())
