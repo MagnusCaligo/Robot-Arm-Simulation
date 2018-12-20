@@ -7,11 +7,14 @@ import os
 from PyQt4 import QtCore
 import sys
 import time
+import copy
 config_file = "config-feedforward.txt"
 
-config_files = ["configurations/lowAddition_lowSubtraction_weights30.txt","configurations/lowAddition_lowSubtraction_weights1000.txt","configurations/lowAddition_noSubtraction_weights30.txt","configurations/lowAddition_noSubtraction_weights1000.txt"]
+#config_files = ["configurations/lowAddition_lowSubtraction_weights30.txt","configurations/lowAddition_lowSubtraction_weights1000.txt","configurations/lowAddition_noSubtraction_weights30.txt","configurations/lowAddition_noSubtraction_weights1000.txt"]
 
+#config_files = ["configurations/lowAddition_lowSubtraction_weights1000_hypertangent_1dof.txt","configurations/lowAddition_lowSubtraction_weights1000_sigmoid_1dof.txt"]
 generation = 0
+config_files = ["configurations/lowAddition_lowSubtraction_weights1000_hypertangent_1dof.txt"]
 
 def Evolve(distances):
     config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet, neat.DefaultStagnation, config_file)
@@ -161,12 +164,18 @@ class EvolveThreadingMain(QtCore.QObject):
         self.threads = []
         
         self.numConfigs = len(config_files)
-        self.numTests = 10
+        self.numTests = 1
         
         self.timeSinceLastUpdate = time.time()
         
         self.printData = []
         self.winnerData = []
+        
+        self.bestOrganism = None
+        self.highestFitness = None
+        
+        self.complete = False
+        
         for i in range(self.numConfigs):
             self.printData.append([])
             self.winnerData.append([])
@@ -192,6 +201,9 @@ class EvolveThreadingMain(QtCore.QObject):
             
     def getWinnerData(self, con_id, sub_id, data):
         self.winnerData[con_id][sub_id] = data
+        if self.highestFitness == None or data[1] > self.highestFitness:
+            self.bestOrganism = neat.nn.FeedForwardNetwork.create(data[2], data[3])
+            self.highestFitness = data[1]
         dataIsFull = True
         for i in range(self.numConfigs):
             for p in range(self.numTests):
@@ -208,6 +220,8 @@ class EvolveThreadingMain(QtCore.QObject):
                     print "\tRun", p, "- Generaton:", self.winnerData[i][p][0], "\t Fitness:", self.winnerData[i][p][1]
                     dataString = dataString + str(i) + " " + str(p) + " " + str(self.winnerData[i][p][0]) + " " + str(self.winnerData[i][p][1]) + "\n"
             self.writeData(dataString)
+            self.complete = True
+            self.emit(QtCore.SIGNAL("finished"))
         
         
     def returnData(self, con_id, sub_id, data):
@@ -221,7 +235,7 @@ class EvolveThreadingMain(QtCore.QObject):
         if dataIsFull == True:
             os.system('cls')
             deltaTime = time.time() - self.timeSinceLastUpdate
-            timeLeft = (1500-self.printData[0][0][0])/float(1/float(deltaTime))
+            timeLeft = (EvolveConfiguration.NUMBER_OF_ITERATIONS-self.printData[0][0][0])/float(1/float(deltaTime))
             print "Delta Time:", deltaTime, "\tApproximate Time Left:", timeLeft, "seconds\t", timeLeft/float(60), "minutes\t", timeLeft/float(60)/float(60), "hours"
             self.timeSinceLastUpdate = time.time()
             for i in range(self.numConfigs):
@@ -229,11 +243,12 @@ class EvolveThreadingMain(QtCore.QObject):
                 for p in range(self.numTests):
                     print "\tRun", p, "- Generaton:", self.printData[i][p][0], "\t Fitness:", self.printData[i][p][1]
                     
-            self.printData = []
-            for i in range(self.numConfigs):
+            self.printData = copy.deepcopy(self.winnerData)
+            '''for i in range(self.numConfigs):
                 self.printData.append([])
                 for p in range(self.numTests):
                     self.printData[i].append(None)
+            '''
                     
                     
     def writeData(self, dataString):
@@ -244,12 +259,13 @@ class EvolveThreadingMain(QtCore.QObject):
         file = open("output" + str(outputId) + ".data", "w")
         file.write(dataString)
         file.close()
-        sys.exit(1)
+        print "Wrote to file:", "output" + str(outputId) + ".data"
+        #sys.exit(1)
                     
     
 class EvolveConfiguration(QtCore.QThread):
 
-    NUMBER_OF_ITERATIONS = 1500
+    NUMBER_OF_ITERATIONS = 5
 
     def __init__(self, config, distances, config_id, sub_id):
         QtCore.QThread.__init__(self)
@@ -258,17 +274,19 @@ class EvolveConfiguration(QtCore.QThread):
         self.config_id = config_id
         self.sub_id = sub_id
         self.generation = -1
+        self.dataFile = open("generationData.txt", "w")
         
     def run(self):
         pop = neat.Population(self.config)
         #pop.add_reporter(neat.StdOutReporter(True))
         winner = pop.run(lambda geneomes, config: self.__calculateFitnessMovingPoint(geneomes, config, self.distances), EvolveConfiguration.NUMBER_OF_ITERATIONS)
-        self.emit(QtCore.SIGNAL("winner_data(PyQt_PyObject, PyQt_PyObject, PyQt_PyObject)"), self.config_id, self.sub_id, [self.generation, winner.fitness])
+        self.emit(QtCore.SIGNAL("winner_data(PyQt_PyObject, PyQt_PyObject, PyQt_PyObject)"), self.config_id, self.sub_id, [self.generation, winner.fitness, winner, self.config])
+        self.dataFile.close()
         
     def __calculateFitnessMovingPoint(self, geneomes, config, distances):
         self.generation += 1
-        maximumDistance = 200
-        numberOfTest = 4
+        maximumDistance = sum(distances)
+        numberOfTest = 2
         highestFitness = None
         for geneomeID, genome in geneomes:
             genome.fitness = 0
@@ -276,7 +294,7 @@ class EvolveConfiguration(QtCore.QThread):
             rand = random.Random()
             seed = random.randint(0,10000)
             seed = 3
-            #rand.seed(seed)
+            rand.seed(seed)
             
             net = neat.nn.FeedForwardNetwork.create(genome, config)
             xDifferences = []
@@ -284,7 +302,7 @@ class EvolveConfiguration(QtCore.QThread):
             
             for i in range(numberOfTest):
                 angle = rand.uniform(0,1) * math.pi * 2
-                radius = rand.uniform(0, 1) * maximumDistance
+                radius = maximumDistance #rand.uniform(0, 1) * maximumDistance
                 targetX = radius * math.sin(angle)
                 targetY = radius * math.cos(angle)
             
@@ -297,6 +315,7 @@ class EvolveConfiguration(QtCore.QThread):
                 positions = RobotArm.calculatePosition(distances, output)
                 endEffectorPosition = positions[-1]
                 distanceBetween = calculateDistanceBetween2D(endEffectorPosition, (targetX, targetY))
+                #print "Target:\t", [targetX, targetY], "\tOutput:\t", output, '\tEF:\t', positions, "\tDifference\t", distanceBetween
                 genome.fitness -= distanceBetween ** 2
                 #genome.fitness += math.pow(math.e, -((10 * (distanceBetween/20) ) ** 2)/float(10)) / float(numberOfTest)
                 xDifferences.append(abs(targetX - endEffectorPosition[0]))
@@ -308,3 +327,4 @@ class EvolveConfiguration(QtCore.QThread):
             #genome.fitness = (.5 * 1/float(sum(xDifferences))) + (.5 * 1/float(sum(yDifferences)))
             #genome.fitness = 10/float(sum(xDifferences) + sum(yDifferences)) 
         self.emit(QtCore.SIGNAL("update_data(PyQt_PyObject, PyQt_PyObject, PyQt_PyObject)"), self.config_id, self.sub_id, [self.generation, highestFitness])
+        self.dataFile.write(str(highestFitness) + "\n")

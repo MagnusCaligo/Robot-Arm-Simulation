@@ -6,19 +6,20 @@ from RoboticArm2D import RobotArm
 from NEATEvolution import *
 
 UPDATE_TIME = 100
-DOF = 2
-DISTANCES = [100] * DOF
+DOF = 1
+DISTANCES = [200] * DOF
 class DrawingWidget(QtGui.QWidget):
 
-    def __init__(self, organism):
+    def __init__(self, organism, trainingThread):
         super(DrawingWidget, self).__init__()
         self.setGeometry(150,150,640,480)
         self.setMouseTracking(True)
         self.show()
         
-        self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.update)
-        self.timer.start(UPDATE_TIME)
+        self.trainingThread = trainingThread
+        self.connect(self.trainingThread, QtCore.SIGNAL("finished"), self.startTimer)
+        
+    
         self.arm1 = RobotArm(DOF, DISTANCES)
         
         self.arm2 = RobotArm(DOF, DISTANCES)
@@ -31,14 +32,20 @@ class DrawingWidget(QtGui.QWidget):
         self.thetas = [0] * DOF
         self.thetasRates = np.random.normal(0, 1, DOF)
         
+    def startTimer(self):
+        self.organism = self.trainingThread.bestOrganism
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update)
+        self.timer.start(UPDATE_TIME)
+        
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Q:
             sys.exit()
             
     def update(self):
         
-        thetas = RobotArm.calculateInverseKinematics(DISTANCES, self.unmodifiedMousePos)
-        self.arm1.update(thetas)
+        #thetas = RobotArm.calculateInverseKinematics(DISTANCES, self.unmodifiedMousePos)
+        #self.arm1.update(thetas)
         
         
         '''
@@ -50,8 +57,8 @@ class DrawingWidget(QtGui.QWidget):
         
         outputAngles = self.organism.activate(self.unmodifiedMousePos)
         outputAngles = [360 * t for t in outputAngles]
-        self.arm2.update(outputAngles)
-        self.calculatedEF = RobotArm.calculatePosition(DISTANCES, outputAngles)[1]
+        self.arm2.update([30])
+        self.calculatedEF = RobotArm.calculatePosition(DISTANCES, [30])[-1]
         
         print calculateDistanceBetween2D(self.unmodifiedMousePos, self.calculatedEF)
         
@@ -71,11 +78,11 @@ class DrawingWidget(QtGui.QWidget):
         seed = 3
         rand.seed(seed)
         numOfTests = 10
-        maxRange = 200
+        maxRange = sum(DISTANCES)
         for i in range(numOfTests):
         
             angle = rand.uniform(0,1) * math.pi * 2
-            radius = rand.uniform(0, 1) * maxRange
+            radius = maxRange #rand.uniform(0, 1) * maxRange
             targetX = radius * math.sin(angle)
             targetY = radius * math.cos(angle)
             #targetX = rand.uniform(-maxRange, maxRange)
@@ -117,7 +124,9 @@ class DrawingWidget(QtGui.QWidget):
 #winningOrganism = Evolve(DISTANCES)
 threading = EvolveThreadingMain(DISTANCES)
 threading.evolveWithThreads()
-        
+
+
+
 app = QtGui.QApplication(sys.argv)
-#widget = DrawingWidget(winningOrganism)
+widget = DrawingWidget(threading.bestOrganism, threading)
 sys.exit(app.exec_())
